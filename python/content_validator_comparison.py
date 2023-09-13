@@ -28,8 +28,9 @@ def main():
     broken_content_dev = parse_broken_content(
         base_url, get_broken_content(), space_data
     )
-    new_broken_content = compare_broken_content(broken_content_prod, broken_content_dev)
-    if new_broken_content:
+    if new_broken_content := compare_broken_content(
+        broken_content_prod, broken_content_dev
+    ):
         write_broken_content_to_file(new_broken_content, "new_broken_content.csv")
     else:
         print("No new broken content in development branch.")
@@ -46,26 +47,21 @@ def get_base_url():
 
 def get_space_data():
     """Collect all space information"""
-    space_data = sdk.all_spaces(fields="id, parent_id, name")
-    return space_data
+    return sdk.all_spaces(fields="id, parent_id, name")
 
 
 def get_broken_content():
     """Collect broken content"""
-    broken_content = sdk.content_validation(
+    return sdk.content_validation(
         transport_options=transport.TransportSettings(timeout=600)
     ).content_with_errors
-    return broken_content
 
 
 def parse_broken_content(base_url, broken_content, space_data):
     """Parse and return relevant data from content validator"""
     output = []
     for item in broken_content:
-        if item.dashboard:
-            content_type = "dashboard"
-        else:
-            content_type = "look"
+        content_type = "dashboard" if item.dashboard else "look"
         item_content_type = getattr(item, content_type)
         id = item_content_type.id
         name = item_content_type.title
@@ -73,7 +69,7 @@ def parse_broken_content(base_url, broken_content, space_data):
         space_name = item_content_type.space.name
         errors = item.errors
         url = f"{base_url}/{content_type}s/{id}"
-        space_url = "{}/spaces/{}".format(base_url, space_id)
+        space_url = f"{base_url}/spaces/{space_id}"
         if content_type == "look":
             element = None
         else:
@@ -87,7 +83,7 @@ def parse_broken_content(base_url, broken_content, space_data):
             parent_space_url = None
             parent_space_name = None
         else:
-            parent_space_url = "{}/spaces/{}".format(base_url, parent_space_id)
+            parent_space_url = f"{base_url}/spaces/{parent_space_id}"
             parent_space = next(
                 (i for i in space_data if str(i.id) == str(parent_space_id)), None
             )
@@ -122,14 +118,14 @@ def parse_broken_content(base_url, broken_content, space_data):
 
 def compare_broken_content(broken_content_prod, broken_content_dev):
     """Compare output between 2 content_validation runs"""
-    unique_ids_prod = set([i["unique_id"] for i in broken_content_prod])
-    unique_ids_dev = set([i["unique_id"] for i in broken_content_dev])
+    unique_ids_prod = {i["unique_id"] for i in broken_content_prod}
+    unique_ids_dev = {i["unique_id"] for i in broken_content_dev}
     new_broken_content_ids = unique_ids_dev.difference(unique_ids_prod)
-    new_broken_content = []
-    for item in broken_content_dev:
-        if item["unique_id"] in new_broken_content_ids:
-            new_broken_content.append(item)
-    return new_broken_content
+    return [
+        item
+        for item in broken_content_dev
+        if item["unique_id"] in new_broken_content_ids
+    ]
 
 
 def checkout_dev_branch():
@@ -145,7 +141,7 @@ def write_broken_content_to_file(broken_content, output_csv_name):
             writer.writeheader()
             for data in broken_content:
                 writer.writerow(data)
-        print("Broken content information outputed to {}".format(output_csv_name))
+        print(f"Broken content information outputed to {output_csv_name}")
     except IOError:
         print("I/O error")
 

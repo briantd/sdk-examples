@@ -19,59 +19,58 @@ import sheets
     help="Enable user accounts in hack.looker.com",
 )
 def main(filename: str, hackathon: str, enable: bool, limit: int):
-    f = open(filename)
-    registrants = csv.DictReader(f)
+    with open(filename) as f:
+        registrants = csv.DictReader(f)
 
-    sheets_client = sheets.Sheets(
-        spreadsheet_id=os.environ["GOOGLE_SHEET_ID"],
-        cred_file=os.environ["GOOGLE_APPLICATION_CREDENTIALS"],
-    )
-    count = 0
-    for registrant in registrants:
-        registrant["hackathon"] = hackathon
-        click.secho(f"Registering {registrant['email']}", fg="green")
+        sheets_client = sheets.Sheets(
+            spreadsheet_id=os.environ["GOOGLE_SHEET_ID"],
+            cred_file=os.environ["GOOGLE_APPLICATION_CREDENTIALS"],
+        )
+        count = 0
+        for registrant in registrants:
+            registrant["hackathon"] = hackathon
+            click.secho(f"Registering {registrant['email']}", fg="green")
 
-        register_user = sheets.RegisterUser(**registrant)
-        try:
-            sheets_user = sheets_client.register_user(register_user)
-        except sheets.SheetError as ex:
-            click.secho(
-                f"Failed to add to sheet. Stopping after {count} users", fg="red"
-            )
-            f.close()
-            raise ex
-        else:
+            register_user = sheets.RegisterUser(**registrant)
             try:
-                client_id = looker.register_user(
-                    hackathon=hackathon,
-                    first_name=register_user.first_name,
-                    last_name=register_user.last_name,
-                    email=register_user.email,
-                )
-            except looker.RegisterError as ex:
-                f.close()
+                sheets_user = sheets_client.register_user(register_user)
+            except sheets.SheetError as ex:
                 click.secho(
-                    f"Failed to add to Looker. Stopping after {count} users", fg="red"
+                    f"Failed to add to sheet. Stopping after {count} users", fg="red"
                 )
+                f.close()
                 raise ex
-            sheets_user.client_id = client_id
-            sheets_client.users.save(sheets_user)
-        count += 1
-        if limit and count == int(limit):
-            break
-    click.secho(f"Registered {count} users", fg="green")
+            else:
+                try:
+                    client_id = looker.register_user(
+                        hackathon=hackathon,
+                        first_name=register_user.first_name,
+                        last_name=register_user.last_name,
+                        email=register_user.email,
+                    )
+                except looker.RegisterError as ex:
+                    f.close()
+                    click.secho(
+                        f"Failed to add to Looker. Stopping after {count} users", fg="red"
+                    )
+                    raise ex
+                sheets_user.client_id = client_id
+                sheets_client.users.save(sheets_user)
+            count += 1
+            if limit and count == limit:
+                break
+        click.secho(f"Registered {count} users", fg="green")
 
-    if enable:
-        for email, reset in looker.enable_users_by_hackathons([hackathon]).items():
-            sheets_user = sheets_client.users.find(email)
-            if not sheets_user:
-                click.secho(f"Failed to find {email} in spreadsheet", fg="red")
-                continue
-            sheets_user.setup_link = reset
-            sheets_client.users.save(sheets_user)
-            time.sleep(1)
-        click.secho(f"Enabled {count} users", fg="green")
-    f.close()
+        if enable:
+            for email, reset in looker.enable_users_by_hackathons([hackathon]).items():
+                sheets_user = sheets_client.users.find(email)
+                if not sheets_user:
+                    click.secho(f"Failed to find {email} in spreadsheet", fg="red")
+                    continue
+                sheets_user.setup_link = reset
+                sheets_client.users.save(sheets_user)
+                time.sleep(1)
+            click.secho(f"Enabled {count} users", fg="green")
 
 
 if __name__ == "__main__":

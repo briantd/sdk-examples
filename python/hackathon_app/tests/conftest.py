@@ -146,17 +146,16 @@ def create_sheet_repr(sheet, model):
     """
     header = get_header(sheet)
     data = get_data(sheet)
-    result = converter.structure([dict(zip(header, d)) for d in data], Sequence[model])
-    return result
+    return converter.structure(
+        [dict(zip(header, d)) for d in data], Sequence[model]
+    )
 
 
 def get_header(sheet):
     """Get the header as a list"""
     sheet_header = sheet["data"][0]["rowData"][0]["values"]
     header = ["id"]
-    for cell in sheet_header:
-        cell_value = cell["userEnteredValue"]["stringValue"]
-        header.append(cell_value)
+    header.extend(cell["userEnteredValue"]["stringValue"] for cell in sheet_header)
     return header
 
 
@@ -168,9 +167,9 @@ def get_data(sheet):
     data = []
     for id_, row in enumerate(rows_exc_header, start=2):
         row_data = [id_]
-        for cell in row["values"]:
-            cell_value = cell["userEnteredValue"]["stringValue"]
-            row_data.append(cell_value)
+        row_data.extend(
+            cell["userEnteredValue"]["stringValue"] for cell in row["values"]
+        )
         data.append(row_data)
     return data
 
@@ -187,17 +186,13 @@ def get_test_data():
 def spreadsheet_client(credentials):
     """Create a resource object to use the sheets API"""
     service = discovery.build("sheets", "v4", credentials=credentials)
-    spreadsheet_client = service.spreadsheets()
-
-    return spreadsheet_client
+    return service.spreadsheets()
 
 
 @pytest.fixture(scope="session")
 def drive_client(credentials):
     """Create a resource object to use the drive API"""
-    drive_client = discovery.build("drive", "v3", credentials=credentials)
-
-    return drive_client
+    return discovery.build("drive", "v3", credentials=credentials)
 
 
 @pytest.fixture(scope="session")
@@ -208,11 +203,9 @@ def credentials(cred_file) -> service_account.Credentials:
         "https://www.googleapis.com/auth/drive.file",
         "https://www.googleapis.com/auth/spreadsheets",
     ]
-    credentials = service_account.Credentials.from_service_account_file(
+    return service_account.Credentials.from_service_account_file(
         cred_file, scopes=scopes
     )
-
-    return credentials
 
 
 @pytest.fixture(scope="session")

@@ -25,8 +25,7 @@ def main():
 
 def get_all_users() -> Sequence[models.User]:
     """Return a list of users."""
-    users = sdk.all_users(fields="id, sessions")
-    return users
+    return sdk.all_users(fields="id, sessions")
 
 
 def terminate_sessions(user_id: int, sessions: Sequence[models.Session]):

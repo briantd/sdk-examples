@@ -90,8 +90,7 @@ def user_info():
         email_key=app.config["SENDGRID_API_KEY"],
         sheet=sheets_client,
     )
-    user = auth_service.auth_user(auth_code)
-    if user:
+    if user := auth_service.auth_user(auth_code):
         response["first_name"] = user.first_name
         response["last_name"] = user.last_name
     return response
@@ -253,10 +252,8 @@ def route_frontend(path):
     file_path = os.path.join(app.static_folder, path)
     if os.path.isfile(file_path):
         return flask.send_file(file_path)
-    # ...or should be handled by the SPA's "router" in front end
-    else:
-        index_path = os.path.join(app.static_folder, "index.html")
-        try:
-            return flask.send_file(index_path)
-        except FileNotFoundError:
-            return ""
+    index_path = os.path.join(app.static_folder, "index.html")
+    try:
+        return flask.send_file(index_path)
+    except FileNotFoundError:
+        return ""

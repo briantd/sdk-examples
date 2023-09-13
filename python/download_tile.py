@@ -82,10 +82,8 @@ def main():
         print('  renderFormat defaults to "png"')
         return
 
-    dashboard = get_dashboard(dashboard_title)
-    if dashboard:
-        tile = get_tile(dashboard, tile_title)
-        if tile:
+    if dashboard := get_dashboard(dashboard_title):
+        if tile := get_tile(dashboard, tile_title):
             download_tile(tile, render_format)
 
 

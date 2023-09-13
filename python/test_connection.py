@@ -43,20 +43,20 @@ def test_connection(
     assert connection.name
     assert connection.dialect and connection.dialect.connection_tests
     supported_tests: MutableSequence[str] = list(connection.dialect.connection_tests)
-    test_results = sdk.test_connection(
+    return sdk.test_connection(
         connection.name, models.DelimSequence(supported_tests)
     )
-    return test_results
 
 
 def output_results(
     connection_name: str, test_results: Sequence[models.DBConnectionTestResult]
 ):
     """Prints connection test results."""
-    errors = list(filter(lambda test: cast(str, test.status) == "error", test_results))
-    if errors:
+    if errors := list(
+        filter(lambda test: cast(str, test.status) == "error", test_results)
+    ):
         report = reduce(
-            lambda failures, error: failures + f"\n  - {error.message}",
+            lambda failures, error: f"{failures}\n  - {error.message}",
             errors,
             f"{connection_name}:",
         )

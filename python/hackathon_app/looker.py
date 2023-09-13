@@ -40,16 +40,18 @@ def get_hackathon_attr_id(*, sdk: methods.LookerSDK) -> int:
             HACKATHON_ATTR_ID = user_attr.id
             break
     else:
-        attrib = sdk.create_user_attribute(
-            body=models.WriteUserAttribute(
-                name=main_hackathon, label="Looker Hackathon", type="string"
+        if not (
+            attrib := sdk.create_user_attribute(
+                body=models.WriteUserAttribute(
+                    name=main_hackathon,
+                    label="Looker Hackathon",
+                    type="string",
+                )
             )
-        )
-        if not attrib:
+        ):
             raise RegisterError(f"Could not find '{main_hackathon}' user attribute")
-        else:
-            assert attrib.id
-            HACKATHON_ATTR_ID = attrib.id
+        assert attrib.id
+        HACKATHON_ATTR_ID = attrib.id
 
     return HACKATHON_ATTR_ID
 
@@ -97,8 +99,7 @@ def find_or_create_user(
     *, sdk: methods.LookerSDK, first_name: str, last_name: str, email: str
 ) -> models.User:
     try:
-        users = sdk.search_users(email=email)
-        if users:
+        if users := sdk.search_users(email=email):
             user = users[0]
             if (
                 user.first_name != first_name

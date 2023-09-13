@@ -124,10 +124,12 @@ class WhollySheet(Generic[TModel]):
 
         # something like "users!A6:F6"
         updated_range = response["updates"]["updatedRange"]
-        match = re.match(fr"{self.sheet_name}!A(?P<row_id>\d+)", updated_range)
-        if not match:
+        if match := re.match(
+            fr"{self.sheet_name}!A(?P<row_id>\d+)", updated_range
+        ):
+            model.id = int(match.group("row_id"))
+        else:
             raise SheetError("Could not determine row_id")
-        model.id = int(match.group("row_id"))
 
     def rows(self) -> Sequence[TModel]:
         """Retrieve rows from sheet"""
@@ -170,12 +172,7 @@ class WhollySheet(Generic[TModel]):
         key: Optional[str] = None,
     ) -> Optional[TModel]:
         key = key if key else self.key
-        ret = None
-        for row in self.rows():
-            if getattr(row, key) == value:
-                ret = row
-                break
-        return ret
+        return next((row for row in self.rows() if getattr(row, key) == value), None)
 
     def _convert_to_dict(self, data) -> List[Dict[str, str]]:
         """Given a list of lists where the first list contains key names, convert it to
@@ -285,14 +282,13 @@ class Registrations(WhollySheet[Registrant]):
     def is_registered(self, registrant: Registrant) -> bool:
         """Check if registrant is already registerd"""
         registrants = super().rows()
-        registered = False
-        for r in registrants:
-            if (
+        return any(
+            (
                 r.user_email == registrant.user_email
                 and r.hackathon_name == registrant.hackathon_name
-            ):
-                registered = True
-        return registered
+            )
+            for r in registrants
+        )
 
     def register(self, registrant: Registrant):
         """Register user by inserting registrant details into registrations sheet"""
@@ -314,9 +310,9 @@ converter.register_unstructure_hook(
 
 def _convert_bool(val: str, _: bool) -> Optional[bool]:
     converted: Optional[bool]
-    if val.lower() in ("yes", "y", "true", "t", "1"):
+    if val.lower() in {"yes", "y", "true", "t", "1"}:
         converted = True
-    elif val.lower() in ("", "no", "n", "false", "f", "0", "null", "na"):
+    elif val.lower() in {"", "no", "n", "false", "f", "0", "null", "na"}:
         converted = False
     elif val.lower() == NIL:
         converted = None

@@ -15,7 +15,7 @@ sdk = looker_sdk.init31("../looker.ini")
 
 
 def disable_user(user):
-    print("Disabling user " + user.email + " with id " + str(user.id))
+    print(f"Disabling user {user.email} with id {str(user.id)}")
     user.is_disabled = True
     sdk.update_user(user_id=user.id, body=user)
 

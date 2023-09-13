@@ -79,6 +79,8 @@ def test_send_auth_message(sheets: Sheets, test_users: List[User]):
         def decrypt(self, value: str) -> str:
             return "foo"
 
+
+
     class TestEmail:
         def __init__(self, to_email):
             self.to_email = user.email
@@ -88,11 +90,9 @@ def test_send_auth_message(sheets: Sheets, test_users: List[User]):
             assert subject == "Welcome to the Looker Hackathon!"
             assert (
                 body
-                == f"""<h1>Welcome to the Looker Hackathon!</h1>
-Please click https://foo.com/auth/foo to authenticate your email so you can use the Hackathon application
-and participate in the Hackathon
-"""
+                == """<h1>Welcome to the Looker Hackathon!</h1>             #Please click https://foo.com/auth/foo to authenticate your email so you can use the Hackathon application             #and participate in the Hackathon             #"""
             )
+
 
     auth_service = authentication.Authentication(
         crypto=FooCrypto(), sheet=sheets, email=TestEmail(user.email)
